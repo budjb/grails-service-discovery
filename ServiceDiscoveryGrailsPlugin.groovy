@@ -1,69 +1,96 @@
+import com.rackspace.vdo.ServiceDiscoveryInjector
+
 class ServiceDiscoveryGrailsPlugin {
-    // the plugin version
-    def version = "0.1"
-    // the version or versions of Grails the plugin is designed for
+    /**
+     * Plugin version.
+     */
+    def version = "0.1.0"
+
+    /**
+     * Grails version requirement.
+     */
     def grailsVersion = "2.4 > *"
-    // resources that are excluded from plugin packaging
+
+    /**
+     * Excluded files.
+     */
     def pluginExcludes = [
         "grails-app/views/error.gsp"
     ]
 
-    // TODO Fill in these fields
-    def title = "Service Discovery Plugin" // Headline display name of the plugin
-    def author = "Your name"
-    def authorEmail = ""
-    def description = '''\
-Brief summary/description of the plugin.
-'''
+    /**
+     * Plugin title.
+     */
+    def title = "Service Discovery Plugin"
 
-    // URL to the plugin's documentation
+    /**
+     * Author name.
+     */
+    def author = "Bud Byrd"
+
+    /**
+     * Author email address.
+     */
+    def authorEmail = "bud.byrd@gmail.com"
+
+    /**
+     * Plugin description.
+     */
+    def description = 'A plugin that allows service discovery injection into Grails configuration at runtime.'
+
+    /**
+     * Plugin documentation URL.
+     */
     def documentation = "http://grails.org/plugin/service-discovery"
 
-    // Extra (optional) plugin metadata
+    /**
+     * Plugin license.
+     */
+    def license = "APACHE"
 
-    // License: one of 'APACHE', 'GPL2', 'GPL3'
-//    def license = "APACHE"
+    /**
+     * Additional developers.
+     */
+    def developers = [
+        [name: "Cameron Lopez", email: "cameronjlopez@gmail.com"],
+        [name: "Ian Logan", email: "xeregin@gmail.com"],
+        [name: "Michael Xin", email: "jqxin2006@gmail.com"]
+    ]
 
-    // Details of company behind the plugin (if there is one)
-//    def organization = [ name: "My Company", url: "http://www.my-company.com/" ]
+    /**
+     * Location of the plugin's issue tracker.
+     */
+    def issueManagement = [system: "JIRA", url: "http://jira.grails.org/browse/GPMYPLUGIN"]
 
-    // Any additional developers beyond the author specified above.
-//    def developers = [ [ name: "Joe Bloggs", email: "joe@bloggs.net" ]]
+    /**
+     * Online location of the plugin's browseable source code.
+     */
+    def scm = [url: "http://svn.codehaus.org/grails-plugins/"]
 
-    // Location of the plugin's issue tracker.
-//    def issueManagement = [ system: "JIRA", url: "http://jira.grails.org/browse/GPMYPLUGIN" ]
-
-    // Online location of the plugin's browseable source code.
-//    def scm = [ url: "http://svn.codehaus.org/grails-plugins/" ]
-
+    /**
+     * Web descriptor operations.
+     */
     def doWithWebDescriptor = { xml ->
-        // TODO Implement additions to web.xml (optional), this event occurs before
+        // noop
     }
 
+    /**
+     * Spring initialization.
+     */
     def doWithSpring = {
-        // TODO Implement runtime spring config (optional)
+        ServiceDiscoveryInjector serviceDiscoveryInjector = new ServiceDiscoveryInjector()
+        ServiceDiscoveryInjector.instance = serviceDiscoveryInjector
+
+        serviceDiscoveryInjector.grailsApplication = application
+        serviceDiscoveryInjector.addConfigSource(new Object()) /* TODO: the consul driver) */
+
+        serviceDiscoveryInjector.init()
     }
 
-    def doWithDynamicMethods = { ctx ->
-        // TODO Implement registering dynamic methods to classes (optional)
-    }
-
-    def doWithApplicationContext = { ctx ->
-        // TODO Implement post initialization spring config (optional)
-    }
-
-    def onChange = { event ->
-        // TODO Implement code that is executed when any artefact that this plugin is
-        // watching is modified and reloaded. The event contains: event.source,
-        // event.application, event.manager, event.ctx, and event.plugin.
-    }
-
-    def onConfigChange = { event ->
-        // TODO Implement code that is executed when the project configuration changes.
-        // The event is the same as for 'onChange'.
-    }
-
+    /**
+     * Shutdown operations.
+     */
     def onShutdown = { event ->
-        // TODO Implement code that is executed when the application shuts down (optional)
+        application.mainContext.getBean('serviceDiscoveryInjector').shutdown()
     }
 }
