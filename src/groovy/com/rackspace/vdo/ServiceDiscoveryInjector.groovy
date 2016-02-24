@@ -1,48 +1,142 @@
 package com.rackspace.vdo
 
-interface ServiceDiscoveryInjector {
+import org.apache.log4j.Logger
+import org.codehaus.groovy.grails.commons.GrailsApplication
+
+class ServiceDiscoveryInjector {
     /**
-     * Called to initialize the injection system.
+     * Singleton instance of the class.
      *
-     * This method will start an updater thread if configured to do so, which will
-     * update the application's configuration against external services at a configured
-     * interval time.
+     * TODO: make this thread safe
+     */
+    static ServiceDiscoveryInjector instance = null
+
+    /**
+     * Grails application bean.
+     */
+    GrailsApplication grailsApplication
+
+    /**
+     * Logger.
+     */
+    Logger log = Logger.getLogger(ServiceDiscoveryInjector)
+
+    /**
+     * List of the registered configuration sources.
+     */
+    List<ConfigSource> configSources = []
+
+    /**
+     * Thread responsible for running the update operation.
+     */
+    Thread updaterThread
+
+    /**
+     * The interval which the updater thread will use to update.
+     */
+    int configurationUpdateInterval = 60000
+
+    /**
+     * The original application configuration.
+     */
+    ConfigObject originalConfiguration
+
+    /**
+     * Whether the application requests that the remote configuration sources update on an interval.
+     */
+    boolean updateRequested = false
+
+    /**
+     * Starts the configuration update operations.
+     */
+    void init() {
+        originalConfiguration = deepcopy(grailsApplication.config)
+
+        grailsApplication.config.merge(updateConfiguration(originalConfiguration))
+
+        if (updateRequested) {
+            updaterThread = Thread.startDaemon {
+                while (true) {
+                    try {
+                        sleep configurationUpdateInterval
+
+                        grailsApplication.config.merge(updateConfiguration(originalConfiguration))
+                    }
+                    catch (Exception e) {
+                        // TODO: do something with this.
+                        log.error('TODO: bad things happened', e)
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Stops the updater thread, if it exists.
+     */
+    void shutdown() {
+        if (updaterThread) {
+            updaterThread.stop()
+        }
+    }
+
+    /**
+     * Updates the configuration and returns a new configuration root.
      *
-     * @param configuration
+     * @param parent
+     * @return
      */
-    void init(ConfigObject configuration)
+    ConfigObject updateConfiguration(ConfigObject parent) {
+        ConfigObject root = new ConfigObject()
+
+        parent.each { key, value ->
+            if (value instanceof List && value['configSource'] && value['path']) {
+                String serviceId = value['configSource']
+
+                ConfigSource configSource = configSources.find { it.getServiceId() == serviceId }
+                if (!configSource) {
+                    throw new Exception('unsupported config source type')
+                }
+
+                root.put(key, configSource.get(value['path']))
+            }
+            else if (value instanceof ConfigObject) {
+                root.put(key, updateConfiguration(value))
+            }
+            else {
+                root.put(key, value)
+            }
+        }
+
+        return root
+    }
 
     /**
-     * Called when the application is shutting down. This method cleanly stops the updater
-     * thread, if it is active.
-     */
-    void shutdown()
-
-    /**
-     * When called, update the original Grails configuration with new values from
-     * external service discovery services.
-     */
-    void updateConfiguration()
-
-    /**
-     * Add a configuration source object to the list of supported service discovery services.
+     * Add a new configuration source object.
      *
      * @param configSource
      */
-    void addConfigSource(ConfigSource configSource)
+    void addConfigSource(ConfigSource configSource) {
+        if (!configSources.find { it.class == configSource.class }) {
+            configSources << configSource
+        }
+    }
 
     /**
-     * Return the list of all registered configuration sources.
+     * Performs a deep copy of configuration tree.
      *
+     * @param object
      * @return
      */
-    List<ConfigSource> getConfigSources()
-
-    /**
-     * Return the instance of a configuration source for the given class type.
-     *
-     * @param type
-     * @return
-     */
-    ConfigSource getConfigSource(Class<ConfigSource> type)
+    private ConfigObject deepcopy(ConfigObject object) {
+        ConfigObject copy = new ConfigObject()
+        object.keySet().each { key ->
+            def value = object.get(key)
+            if (value instanceof ConfigObject) {
+                value = deepcopy(value)
+            }
+            copy.put(key, value)
+        }
+        return copy
+    }
 }
