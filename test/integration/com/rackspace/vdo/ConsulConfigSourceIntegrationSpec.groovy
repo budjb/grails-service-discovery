@@ -6,18 +6,18 @@ class ConsulConfigSourceIntegrationSpec extends IntegrationSpec {
     ConsulConfigSource cs
 
     def setup() {
-        cs = new ConsulConfigSource()
+        cs = Spy(ConsulConfigSource)
         cs.url = 'http://23.253.48.67'
     }
 
     def 'Validate that a task is created and saved because a task is initialized'() {
         setup:
-        cs.update()
+        cs.queryService() >> [['Key': 'web/key1', 'Value': 'dGVzdA==']]
 
         when:
-        String response = cs.get("web/key1")
+        cs.update()
 
         then:
-        response == "test"
+        cs.get('web/key1') == "test"
     }
 }

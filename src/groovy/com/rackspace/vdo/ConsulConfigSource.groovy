@@ -73,15 +73,9 @@ class ConsulConfigSource implements ConfigSource {
             throw new IllegalArgumentException('unable to poll Consul due to missing server URL')
         }
 
-        HTTPBuilder httpBuilder = new HTTPBuilder(url)
-
         def response
         try {
-            response = httpBuilder.get(path: buildConsulUri(), query: ['recurse': 1])
-
-            if (!(response instanceof List)) {
-                throw new Exception('response from Consul was not a list')
-            }
+            response = queryService()
         }
         catch (Exception e) {
             log.error("failed to get consul config", e)
@@ -114,5 +108,20 @@ class ConsulConfigSource implements ConfigSource {
      */
     String buildConsulUri() {
         return "/v1/kv/${basePath}".replaceAll(/\/\/+/, '/')
+    }
+
+    /**
+     * Queries the Consul service for any configuration values that exist.
+     *
+     * @return
+     */
+    List queryService() {
+        def response = new HTTPBuilder(url).get(path: buildConsulUri(), query: ['recurse': 1])
+
+        if (!(response instanceof List)) {
+            throw new Exception('response from Consul was not a list')
+        }
+
+        return response
     }
 }
