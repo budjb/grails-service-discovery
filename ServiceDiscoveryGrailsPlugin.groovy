@@ -1,5 +1,6 @@
 import com.rackspace.vdo.ConsulConfigSource
 import com.rackspace.vdo.ServiceDiscoveryInjector
+import com.rackspace.vdo.SystemConfigSource
 import org.codehaus.groovy.grails.commons.GrailsApplication
 
 class ServiceDiscoveryGrailsPlugin {
@@ -113,14 +114,17 @@ class ServiceDiscoveryGrailsPlugin {
             return
         }
 
-        ConsulConfigSource consulConfigSource = new ConsulConfigSource()
-        consulConfigSource.url = application.config.serviceDiscovery.consul.url
-        consulConfigSource.basePath = application.config.serviceDiscovery.consul.basePath
-
         ServiceDiscoveryInjector serviceDiscoveryInjector = new ServiceDiscoveryInjector()
         serviceDiscoveryInjector.grailsApplication = application
         serviceDiscoveryInjector.updateInterval = startUpdating ? application.config.serviceDiscovery.updateInterval : 0
+
+        ConsulConfigSource consulConfigSource = new ConsulConfigSource()
+        consulConfigSource.url = application.config.serviceDiscovery.consul.url
+        consulConfigSource.basePath = application.config.serviceDiscovery.consul.basePath
         serviceDiscoveryInjector.addConfigSource(consulConfigSource)
+
+        SystemConfigSource systemConfigSource = new SystemConfigSource()
+        serviceDiscoveryInjector.addConfigSource(systemConfigSource)
 
         ServiceDiscoveryInjector.setInstance(serviceDiscoveryInjector)
         serviceDiscoveryInjector.init()
