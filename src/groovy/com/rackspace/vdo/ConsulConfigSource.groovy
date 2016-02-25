@@ -1,16 +1,50 @@
 package com.rackspace.vdo
 
+import groovyx.net.http.HTTPBuilder
 import org.apache.log4j.Logger
-import com.budjb.requestbuilder.RequestProperties
-
 
 class ConsulConfigSource implements ConfigSource {
+    /**
+     * The URL to the Consul server.
+     */
     String url
-    String basePath
-    Map <String, String> config
 
+    /**
+     * The base path of the configuration in Consul.
+     */
+    String basePath = ''
+
+    /**
+     * Configuration values provided by Consul.
+     */
+    Map<String, String> config = [:]
+
+    /**
+     * Logger.
+     */
     Logger log = Logger.getLogger(ConsulConfigSource)
 
+    /**
+     * Sets the URL of the Consul server.
+     *
+     * @param url
+     */
+    void setUrl(def url) {
+        if (url instanceof String) {
+            this.url = url
+        }
+    }
+
+    /**
+     * Sets the base path of the configuration in Consul.
+     *
+     * @param path
+     */
+    void setBasePath(def path) {
+        if (path instanceof String) {
+            this.basePath = path
+        }
+    }
 
     /**
      * Returns the value for the given key/path, if it exists.
@@ -21,7 +55,6 @@ class ConsulConfigSource implements ConfigSource {
     String get(String key) {
         return config[key]
     }
-
 
     /**
      * Returns all available key/value pairs available for this configuration source.
@@ -36,21 +69,50 @@ class ConsulConfigSource implements ConfigSource {
      * Calls the external service containing service discovery information, and caches it locally.
      */
     void update() {
-        List<Map> response
+        if (!url) {
+            throw new IllegalArgumentException('unable to poll Consul due to missing server URL')
+        }
 
+        HTTPBuilder httpBuilder = new HTTPBuilder(url)
+
+        def response
         try {
-            RequestProperties requestProperties = new RequestProperties()
-            requestProperties.uri = "${url}/${basePath}/?recurse"
-            requestProperties.accept = "application/json"
-            requestProperties.ignoreInvalidSSL = true
-            requestProperties.debug = true
+            response = httpBuilder.get(path: buildConsulUri(), query: ['recurse': 1])
 
-            response = jerseyRequestBuilder.get(requestProperties)
+            if (!(response instanceof List)) {
+                throw new IllegalFormatException('response from Consul was not a list')
+            }
         }
         catch (Exception e) {
-            log.error("Failed to get consul config", e)
+            log.error("failed to get consul config", e)
+            return
         }
 
-        response.each{config[it.key] = it.value.bytes.decodeBase64().toString()}
+        try {
+            response.each { config[it['Key']] = new String(it['Value'].decodeBase64()) }
+        }
+        catch (Exception e) {
+            log.error("unable to parse Consul response", e)
+            return
+        }
+    }
+
+    /**
+     * Returns the service ID of the configuration source.
+     *
+     * @return
+     */
+    @Override
+    String getServiceId() {
+        return 'consul'
+    }
+
+    /**
+     * Builds the URI to the Consul server.
+     *
+     * @return
+     */
+    String buildConsulUri() {
+        return "/v1/kv/${basePath}".replaceAll(/\/\/+/, '/')
     }
 }
