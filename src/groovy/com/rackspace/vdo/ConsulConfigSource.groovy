@@ -1,11 +1,7 @@
 package com.rackspace.vdo
 
 import groovyx.net.http.HTTPBuilder
-import groovyx.net.http.HttpResponseException
-import groovyx.net.http.ResponseParseException
 import org.apache.log4j.Logger
-
-import java.text.ParseException
 
 class ConsulConfigSource implements ConfigSource {
     /**
@@ -84,7 +80,6 @@ class ConsulConfigSource implements ConfigSource {
             response = httpBuilder.get(path: buildConsulUri(), query: ['recurse': 1])
 
             if (!(response instanceof List)) {
-                // TODO: better exception type?
                 throw new Exception('response from Consul was not a list')
             }
         }
