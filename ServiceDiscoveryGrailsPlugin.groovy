@@ -72,12 +72,12 @@ class ServiceDiscoveryGrailsPlugin {
     /**
      * Location of the plugin's issue tracker.
      */
-    def issueManagement = [system: "JIRA", url: "http://jira.grails.org/browse/GPMYPLUGIN"]
+    def issueManagement = [system: "github", url: "https://github.com/budjb/grails-service-discovery/issues"]
 
     /**
      * Online location of the plugin's browseable source code.
      */
-    def scm = [url: "http://svn.codehaus.org/grails-plugins/"]
+    def scm = [url: "https://github.com/budjb/grails-service-discovery"]
 
     /**
      * Web descriptor operations.
@@ -108,9 +108,14 @@ class ServiceDiscoveryGrailsPlugin {
      * @return
      */
     def installServiceDiscovery(GrailsApplication application, boolean startUpdating) {
+        def enabled = application.config.serviceDiscovery.enabled
+        if (enabled instanceof Boolean && !enabled) {
+            return
+        }
+
         ConsulConfigSource consulConfigSource = new ConsulConfigSource()
-        consulConfigSource.url = application.config.consul.url
-        consulConfigSource.basePath = application.config.consul.basePath
+        consulConfigSource.url = application.config.serviceDiscovery.consul.url
+        consulConfigSource.basePath = application.config.serviceDiscovery.consul.basePath
 
         ServiceDiscoveryInjector serviceDiscoveryInjector = new ServiceDiscoveryInjector()
         serviceDiscoveryInjector.grailsApplication = application

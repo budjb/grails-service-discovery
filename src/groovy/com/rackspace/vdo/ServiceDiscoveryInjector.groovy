@@ -62,7 +62,7 @@ class ServiceDiscoveryInjector {
      *
      * A value <= 0 disables updating.
      */
-    int updateInterval = 5000
+    int updateInterval = 60000
 
     /**
      * The original application configuration.
