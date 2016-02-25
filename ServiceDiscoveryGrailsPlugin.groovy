@@ -1,4 +1,6 @@
+import com.rackspace.vdo.ConsulConfigSource
 import com.rackspace.vdo.ServiceDiscoveryInjector
+import org.codehaus.groovy.grails.commons.GrailsApplication
 
 class ServiceDiscoveryGrailsPlugin {
     /**
@@ -58,6 +60,16 @@ class ServiceDiscoveryGrailsPlugin {
     ]
 
     /**
+     * Plugin load order
+     */
+    def loadBefore = ['logging']
+
+    /**
+     * Plugin load order
+     */
+    def loadAfter = ['core']
+
+    /**
      * Location of the plugin's issue tracker.
      */
     def issueManagement = [system: "JIRA", url: "http://jira.grails.org/browse/GPMYPLUGIN"]
@@ -71,26 +83,41 @@ class ServiceDiscoveryGrailsPlugin {
      * Web descriptor operations.
      */
     def doWithWebDescriptor = { xml ->
-        // noop
+        installServiceDiscovery(application, false)
     }
 
     /**
      * Spring initialization.
      */
     def doWithSpring = {
-        ServiceDiscoveryInjector serviceDiscoveryInjector = new ServiceDiscoveryInjector()
-        ServiceDiscoveryInjector.instance = serviceDiscoveryInjector
-
-        serviceDiscoveryInjector.grailsApplication = application
-        serviceDiscoveryInjector.addConfigSource(new Object()) /* TODO: the consul driver) */
-
-        serviceDiscoveryInjector.init()
+        installServiceDiscovery(application, true)
     }
 
     /**
      * Shutdown operations.
      */
     def onShutdown = { event ->
-        application.mainContext.getBean('serviceDiscoveryInjector').shutdown()
+        event.ctx.getBean('serviceDiscoveryInjector').shutdown()
+    }
+
+    /**
+     * Creates, configures, and updates application configuration with service discovery.
+     *
+     * @param application
+     * @param startUpdating
+     * @return
+     */
+    def installServiceDiscovery(GrailsApplication application, boolean startUpdating) {
+        ConsulConfigSource consulConfigSource = new ConsulConfigSource()
+        consulConfigSource.url = application.config.consul.url
+        consulConfigSource.basePath = application.config.consul.basePath
+
+        ServiceDiscoveryInjector serviceDiscoveryInjector = new ServiceDiscoveryInjector()
+        serviceDiscoveryInjector.grailsApplication = application
+        serviceDiscoveryInjector.updateInterval = startUpdating ? application.config.serviceDiscovery.updateInterval : 0
+        serviceDiscoveryInjector.addConfigSource(consulConfigSource)
+
+        ServiceDiscoveryInjector.setInstance(serviceDiscoveryInjector)
+        serviceDiscoveryInjector.init()
     }
 }

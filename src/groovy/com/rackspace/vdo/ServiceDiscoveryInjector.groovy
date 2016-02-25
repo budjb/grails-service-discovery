@@ -6,10 +6,36 @@ import org.codehaus.groovy.grails.commons.GrailsApplication
 class ServiceDiscoveryInjector {
     /**
      * Singleton instance of the class.
-     *
-     * TODO: make this thread safe
      */
-    static ServiceDiscoveryInjector instance = null
+    private static ServiceDiscoveryInjector instance = null
+
+    /**
+     * Lock object for singleton instance access.
+     */
+    private static final Object instanceLock = new Object()
+
+    /**
+     * Return the instance of the injector.
+     *
+     * @return
+     */
+    static getInstance() {
+        synchronized (instanceLock) {
+            return instance
+        }
+    }
+
+    /**
+     * Set the instance of the injector.
+     *
+     * @param instance
+     * @return
+     */
+    static setInstance(ServiceDiscoveryInjector instance) {
+        synchronized (instanceLock) {
+            this.instance = instance
+        }
+    }
 
     /**
      * Grails application bean.
@@ -33,8 +59,10 @@ class ServiceDiscoveryInjector {
 
     /**
      * The interval which the updater thread will use to update.
+     *
+     * A value <= 0 disables updating.
      */
-    int configurationUpdateInterval = 60000
+    int updateInterval = 5000
 
     /**
      * The original application configuration.
@@ -42,25 +70,19 @@ class ServiceDiscoveryInjector {
     ConfigObject originalConfiguration
 
     /**
-     * Whether the application requests that the remote configuration sources update on an interval.
-     */
-    boolean updateRequested = false
-
-    /**
      * Starts the configuration update operations.
      */
     void init() {
-        originalConfiguration = deepcopy(grailsApplication.config)
+        originalConfiguration = cloneConfiguration(grailsApplication.config)
 
-        grailsApplication.config.merge(updateConfiguration(originalConfiguration))
+        updateConfiguration()
 
-        if (updateRequested) {
+        if (updateInterval > 0) {
             updaterThread = Thread.startDaemon {
                 while (true) {
                     try {
-                        sleep configurationUpdateInterval
-
-                        grailsApplication.config.merge(updateConfiguration(originalConfiguration))
+                        sleep updateInterval
+                        updateConfiguration()
                     }
                     catch (Exception e) {
                         // TODO: do something with this.
@@ -81,16 +103,25 @@ class ServiceDiscoveryInjector {
     }
 
     /**
+     * Updates the application's configuration.
+     */
+    void updateConfiguration() {
+        configSources*.update()
+
+        grailsApplication.config.merge(mangleConfiguration(originalConfiguration))
+    }
+
+    /**
      * Updates the configuration and returns a new configuration root.
      *
      * @param parent
      * @return
      */
-    ConfigObject updateConfiguration(ConfigObject parent) {
+    ConfigObject mangleConfiguration(ConfigObject parent) {
         ConfigObject root = new ConfigObject()
 
         parent.each { key, value ->
-            if (value instanceof List && value['configSource'] && value['path']) {
+            if (value instanceof Map && value.containsKey('configSource') && value.containsKey('path')) {
                 String serviceId = value['configSource']
 
                 ConfigSource configSource = configSources.find { it.getServiceId() == serviceId }
@@ -101,7 +132,7 @@ class ServiceDiscoveryInjector {
                 root.put(key, configSource.get(value['path']))
             }
             else if (value instanceof ConfigObject) {
-                root.put(key, updateConfiguration(value))
+                root.put(key, mangleConfiguration(value))
             }
             else {
                 root.put(key, value)
@@ -128,15 +159,24 @@ class ServiceDiscoveryInjector {
      * @param object
      * @return
      */
-    private ConfigObject deepcopy(ConfigObject object) {
+    private ConfigObject cloneConfiguration(ConfigObject object) {
         ConfigObject copy = new ConfigObject()
+
         object.keySet().each { key ->
             def value = object.get(key)
+
             if (value instanceof ConfigObject) {
-                value = deepcopy(value)
+                value = cloneConfiguration(value)
             }
+
             copy.put(key, value)
         }
         return copy
+    }
+
+    void setUpdateInterval(def value) {
+        if (value instanceof Integer) {
+            this.updateInterval = value
+        }
     }
 }
