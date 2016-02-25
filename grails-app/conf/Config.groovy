@@ -1,0 +1,3 @@
+serviceDiscovery {
+    enabled = false
+}

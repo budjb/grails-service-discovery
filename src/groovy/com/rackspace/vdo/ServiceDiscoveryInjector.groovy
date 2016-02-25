@@ -62,7 +62,7 @@ class ServiceDiscoveryInjector {
      *
      * A value <= 0 disables updating.
      */
-    int updateInterval = 5000
+    int updateInterval = 60000
 
     /**
      * The original application configuration.
@@ -121,15 +121,17 @@ class ServiceDiscoveryInjector {
         ConfigObject root = new ConfigObject()
 
         parent.each { key, value ->
-            if (value instanceof Map && value.containsKey('configSource') && value.containsKey('path')) {
-                String serviceId = value['configSource']
-
-                ConfigSource configSource = configSources.find { it.getServiceId() == serviceId }
-                if (!configSource) {
-                    throw new Exception('unsupported config source type')
+            if (value instanceof ServiceDiscoveryValue) {
+                if (!value.isValid()) {
+                    throw new IllegalArgumentException("service discovery value with relative key '${key}' is incomplete")
                 }
 
-                root.put(key, configSource.get(value['path']))
+                ConfigSource configSource = configSources.find { it.getServiceId() == value.serviceId }
+                if (!configSource) {
+                    throw new Exception("unsupported config source type: ${value.serviceId}")
+                }
+
+                root.put(key, configSource.get(value.path))
             }
             else if (value instanceof ConfigObject) {
                 root.put(key, mangleConfiguration(value))

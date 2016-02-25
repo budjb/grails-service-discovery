@@ -1,24 +1,23 @@
-package com.rackspace.vdo.workflow
+package com.rackspace.vdo
 
-import com.rackspace.vdo.ConsulConfigSource
 import grails.test.spock.IntegrationSpec
 
 class ConsulConfigSourceIntegrationSpec extends IntegrationSpec {
     ConsulConfigSource cs
 
     def setup() {
-        cs = new ConsulConfigSource()
-        cs.baseUrl = "http://23.253.48.67/v1/kv"
+        cs = Spy(ConsulConfigSource)
+        cs.url = 'http://23.253.48.67'
     }
 
     def 'Validate that a task is created and saved because a task is initialized'() {
         setup:
-        cs.update()
+        cs.queryService() >> [['Key': 'web/key1', 'Value': 'dGVzdA==']]
 
         when:
-        String response = cs.get("web/key1")
+        cs.update()
 
         then:
-        response == "test"
+        cs.get('web/key1') == "test"
     }
 }

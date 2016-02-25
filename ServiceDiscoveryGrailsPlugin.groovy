@@ -1,5 +1,6 @@
 import com.rackspace.vdo.ConsulConfigSource
 import com.rackspace.vdo.ServiceDiscoveryInjector
+import com.rackspace.vdo.SystemConfigSource
 import org.codehaus.groovy.grails.commons.GrailsApplication
 
 class ServiceDiscoveryGrailsPlugin {
@@ -72,12 +73,12 @@ class ServiceDiscoveryGrailsPlugin {
     /**
      * Location of the plugin's issue tracker.
      */
-    def issueManagement = [system: "JIRA", url: "http://jira.grails.org/browse/GPMYPLUGIN"]
+    def issueManagement = [system: "github", url: "https://github.com/budjb/grails-service-discovery/issues"]
 
     /**
      * Online location of the plugin's browseable source code.
      */
-    def scm = [url: "http://svn.codehaus.org/grails-plugins/"]
+    def scm = [url: "https://github.com/budjb/grails-service-discovery"]
 
     /**
      * Web descriptor operations.
@@ -108,14 +109,22 @@ class ServiceDiscoveryGrailsPlugin {
      * @return
      */
     def installServiceDiscovery(GrailsApplication application, boolean startUpdating) {
-        ConsulConfigSource consulConfigSource = new ConsulConfigSource()
-        consulConfigSource.url = application.config.consul.url
-        consulConfigSource.basePath = application.config.consul.basePath
+        def enabled = application.config.serviceDiscovery.enabled
+        if (enabled instanceof Boolean && !enabled) {
+            return
+        }
 
         ServiceDiscoveryInjector serviceDiscoveryInjector = new ServiceDiscoveryInjector()
         serviceDiscoveryInjector.grailsApplication = application
         serviceDiscoveryInjector.updateInterval = startUpdating ? application.config.serviceDiscovery.updateInterval : 0
+
+        ConsulConfigSource consulConfigSource = new ConsulConfigSource()
+        consulConfigSource.url = application.config.serviceDiscovery.consul.url
+        consulConfigSource.basePath = application.config.serviceDiscovery.consul.basePath
         serviceDiscoveryInjector.addConfigSource(consulConfigSource)
+
+        SystemConfigSource systemConfigSource = new SystemConfigSource()
+        serviceDiscoveryInjector.addConfigSource(systemConfigSource)
 
         ServiceDiscoveryInjector.setInstance(serviceDiscoveryInjector)
         serviceDiscoveryInjector.init()
