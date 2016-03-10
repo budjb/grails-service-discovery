@@ -1,4 +1,4 @@
-package com.rackspace.vdo
+package com.budjb.servicediscovery
 
 class ServiceDiscoveryValue {
     /**

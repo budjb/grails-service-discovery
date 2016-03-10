@@ -1,6 +1,6 @@
-import com.rackspace.vdo.ConsulConfigSource
-import com.rackspace.vdo.ServiceDiscoveryInjector
-import com.rackspace.vdo.SystemConfigSource
+import com.budjb.servicediscovery.ConsulConfigSource
+import com.budjb.servicediscovery.ServiceDiscoveryInjector
+import com.budjb.servicediscovery.SystemConfigSource
 import org.codehaus.groovy.grails.commons.GrailsApplication
 
 class ServiceDiscoveryGrailsPlugin {

@@ -1,4 +1,4 @@
-package com.budjb
+package com.budjb.servicediscovery
 
 import org.codehaus.groovy.grails.commons.GrailsApplication
 

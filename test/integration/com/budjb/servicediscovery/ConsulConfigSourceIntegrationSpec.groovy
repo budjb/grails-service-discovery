@@ -1,4 +1,4 @@
-package com.rackspace.vdo
+package com.budjb.servicediscovery
 
 import grails.test.spock.IntegrationSpec
 

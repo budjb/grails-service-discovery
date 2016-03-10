@@ -1,4 +1,4 @@
-package com.rackspace.vdo
+package com.budjb.servicediscovery
 
 import groovyx.net.http.HTTPBuilder
 import org.apache.log4j.Logger

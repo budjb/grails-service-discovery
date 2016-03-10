@@ -1,4 +1,4 @@
-package com.rackspace.vdo
+package com.budjb.servicediscovery
 
 import org.apache.log4j.Logger
 import org.codehaus.groovy.grails.commons.GrailsApplication
